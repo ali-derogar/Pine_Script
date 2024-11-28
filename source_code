@@ -1,0 +1,49 @@
+//@version=5
+strategy(title="ArminOscillator Strategy", shorttitle="Aroc", overlay=true,pyramiding=100)
+
+// Input parameters
+lengthRSI = input.int(130, minval=1)
+lengthStoch = input.int(9, minval=1)
+smoothK = input.int(5, minval=1)
+smoothD = input.int(2, minval=1)
+lengthMA = input.int(4, title="Trend MA Length")  // Length for trend identification
+
+// Calculate RSI and Stochastic RSI
+rsi1 = ta.rsi(close, lengthRSI)
+stochRSI = ta.stoch(rsi1, rsi1, rsi1, lengthStoch)
+k = ta.sma(stochRSI, smoothK)
+d = ta.sma(k, smoothD)
+
+// Define trend using SMA
+sma = ta.sma(close, lengthMA)
+upTrend = close > sma
+downTrend = close < sma
+sideways = not upTrend and not downTrend
+
+// Define conditions for buy and sell signals based on levels and trend
+buySignal = ta.cross(k, d) and k > d and k < 20 and upTrend
+sellSignal = ta.cross(k, d) and k < d and k > 80 and downTrend
+
+// Buy and Sell signals in sideways
+buySignalSideways = ta.cross(k, d) and k > d and k < 20 and sideways
+sellSignalSideways = ta.cross(k, d) and k < d and k > 80 and sideways
+
+// Get the high and low of the previous candle
+prevHigh = ta.highest(high, 1)[1]
+prevLow = ta.lowest(low, 1)[1]
+
+// Define stop loss and take profit
+var float stopLoss = na
+var float takeProfit1 = na
+
+if (buySignal or buySignalSideways)
+    // Open first position with TP 0.75 * SL
+    strategy.entry("Buy1", strategy.long)
+
+if (sellSignal or sellSignalSideways)
+    // Open first position with TP 0.75 * SL
+    strategy.entry("Sell1", strategy.short)
+
+// Plot buy and sell signals
+plotshape(series=buySignal or buySignalSideways ? buySignal : na, location=location.belowbar, color=color.green, style=shape.triangleup, size=size.small, title="Buy Signal")
+plotshape(series=sellSignal or sellSignalSideways ? sellSignal : na, location=location.abovebar, color=color.red, style=shape.triangledown, size=size.small, title="Sell Signal")
